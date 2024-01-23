@@ -50,3 +50,4 @@
    - 运行命令 `git pull origin main --allow-unrelated-histories`。
 2. **创建并切换到 `main` 分支可以使用命令**
    + `git checkout -b main`
+3. 待完善。。
