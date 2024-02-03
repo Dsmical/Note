@@ -165,3 +165,98 @@
 | (.*)         | 捕获全部           |      |
 | （abc\|def） | 匹配 abc 或 def    |      |
 
+### tmux
+
++ 安装
+
+```bash
+sudo apt-get install tmux
+```
+
++ 配置
+
+  + 进入home
+
+  + 创建一个配置文件 `.tmux.conf`
+  + 添加下列配置
+
+  ```bash
+  cd ~
+  vim .tmux.conf
+  bind-key c new-window -c "#{pane_current_path}"
+  bind-key % split-window -h -c "#{pane_current_path}"
+  bind-key '"' split-window -c "#{pane_current_path}"
+  ```
+
++ 启动和退出
+
+```bash
+# 启动tmux
+$ tmux
+
+# 退出
+$ exit 或 Ctrl+D
+```
+
++ 开启会话，分离会话
+
+```bash
+# 启动命名tmux
+$ tmux new -s <name>
+# 分离会话
+$ tmux detach
+#执行tmux ls可看到当前所有的tmux伪窗口
+```
+
++ 重接会话
+
+```bash
+# 重接会话 使用伪窗口编号
+$ tmux attach -t 0
+
+# 重接会话 使用伪窗口名称
+$ tmux attach -t xiaoqi
+```
+
++ 杀死会话
+
+```bash
+# 使用会话编号
+$ tmux kill-session -t 0
+
+# 使用会话名称
+$ tmux kill-session -t <name>
+```
+
++ 切换会话
+
+```bash
+# 使用会话编号
+$ tmux switch -t 0
+
+# 使用会话名称
+$ tmux switch -t <session-name>
+```
+
++ 重命名会话
+
+```bash
+$ tmux rename-session -t 0 <new-name>
+```
+
++ 其他命令
+
+```bash
+# 列出所有快捷键，及其对应的 Tmux 命令
+$ tmux list-keys
+
+# 列出所有 Tmux 命令及其参数
+$ tmux list-commands
+
+# 列出当前所有 Tmux 会话的信息
+$ tmux info
+
+# 重新加载当前的 Tmux 配置
+$ tmux source-file ~/.tmux.conf
+```
+
