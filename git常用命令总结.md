@@ -1,5 +1,22 @@
 ## git常用命令总结
 
+## 流程
+
+**首次使用git的操作配置 Git**
+
+- `git config --global user.name "你的名字"`：设置用户名。
+- `git config --global user.email "你的邮箱"`：设置邮箱地址。
+
+1. `git init`
+2. `git add [文件名]`或者`git add .`
+3. `git commit -m "提交信息"`
+4. `git remote add origin [你的远程仓库URL]`
+5. `git push -u origin main` 这里的 `master` 或 `main` 是你的远程仓库的主分支名称,`-u` 参数（或 --set-upstream）的作用是将本地的 main 分支与远程仓库的 main 分支关联起来。这意味着，在这次操作之后，你可以只用 git push 或 git pull 命令在这两个分支之间同步更改.
+6. `git clone [URL]`：克隆（下载）一个远程仓库到本地。
+8. `git -b checkout [分支名]`：创建一个新分支并切换到该分支。（也可以分两步`git branch [分支名]`：创建一个新分支。`git  checkout [分支名]`，切换到指定分支。
+
+## 基本命令
+
 1. **配置 Git**
    - `git config --global user.name "你的名字"`：设置用户名。
    - `git config --global user.email "你的邮箱"`：设置邮箱地址。
@@ -30,19 +47,6 @@
 11. **处理远程仓库**
     - `git remote add origin [URL]`：添加一个新的远程仓库。
     - `git remote -v`：查看所有远程仓库。
-
-## 流程
-
-**首次使用git的操作配置 Git**
-
-- `git config --global user.name "你的名字"`：设置用户名。
-- `git config --global user.email "你的邮箱"`：设置邮箱地址。
-
-1. `git init`
-2. `git add [文件名]`或者`git add .`
-3. `git commit -m "提交信息"`
-4. `git remote add origin [你的远程仓库URL]`
-5. `git push -u origin main` 这里的 `master` 或 `main` 是你的远程仓库的主分支名称,`-u` 参数（或 --set-upstream）的作用是将本地的 main 分支与远程仓库的 main 分支关联起来。这意味着，在这次操作之后，你可以只用 git push 或 git pull 命令在这两个分支之间同步更改.
 
 ## 常见错误解决
 
