@@ -834,7 +834,7 @@ Build Options
 
 ### PA2.2
 
-##### 修改Makefile通过批处理模式运行nemu
+#### 修改Makefile通过批处理模式运行nemu
 
 ```bash
 思路：首先RTFSC，在nemu/src/monitor/monitor.c中的parse_args解析函数函数中存在一个批处理模式的匹配，当参数为-b时会调用函数sdb_set_batch_mode打开批处理模式，而parse_args的参数又来自main函数，因此，只需要在对应的AM的Makefile中在运行nemu时传入一个 -b的参数就可以打开批处理模式。
@@ -846,4 +846,174 @@ NEMUFLAGS += -l $(shell dirname $(IMAGE).elf)/nemu-log.txt -b
 在/home/dsm/ysyx-workbench/am-kernels/tests/cpu-tests路径下运行make ARCH=riscv32-nemu ALL=add run
 ```
 
+#### 编写sprintf函数
+
+##### 介绍stdarg.h
+
+​		在sprintf函数中可以输入任意类型的任意个参数，但是必须在格式化字符串中确定输入参数的个数和类型，就需要使用stdarg.h头文件了。stdarg的全称就是standard arguments（标准参数），主要目的就是为了让函数能够接收可变参数。它为用户定义了4个标准宏：
+
+```c
+ifdef _STDARG_H
+ 
+define va_start(v,l)	__builtin_va_start(v,l)
+define va_end(v)	__builtin_va_end(v)
+define va_arg(v,l)	__builtin_va_arg(v,l)
+if !defined(__STRICT_ANSI__) || __STDC_VERSION__ + 0 >= 199900L || defined(__GXX_EXPERIMENTAL_CXX0X__)
+define va_copy(d,s)	__builtin_va_copy(d,s)
+endif
+//注意：va_start/va_arg/va_end函数符合C89标准。而va_copy是C99定义的
+//同时它定义了一个类型va_list
+```
+
++ `void va_start(va_list ap, last);`
+
+va_start函数初始化了va_list对象ap，为之后的va_arg和va_end函数作准备，所以必须首先调用。
+
+参数last指的是变量参数列表之前的参数名，也就是调用函数中最后一个已知参数类型的参数。
+
+比如，printf函数中的fmt因为last参数的地址会在va_start函数中使用，所以last不应该是一个寄存器变量，函数或者数组类型。
+
++ `type va_arg(va_list ap, type);`
+
+va_arg函数返回ap当前指向的参数的值。
+
+参数ap就是va_start初始化的va_list对象；
+
+参数type是一个类型名，比如“char”，“int”等，表示当前ap指向的参数的类型
+
+每次调用va_arg后，ap就会指向下一个参数。但如果已经遍历完参数列表，或者参数type并不是当前参数的实际类型名，此时调用va_arg函数将会发生随机错误。
+
+ap被参数va_arg函数使用过后，将无法回到最开始的位置
+
++ `void va_end(va_list ap);`
+
+va_end函数和va_start相对应。在同一个函数中，调用过va_start之后就必须调用va_end。
+
+使用va_end以后，变量ap将重置为空，并释放内存。
+
++ `void va_copy(va_list dest, va_list src);`
+
+C99标准。如果想要多次使用参数列表，那么可以使用va_copy函数。
+
+每次调用过va_copy函数后，必须相应的在同一个函数中调用va_end函数，比如：
+
+```c
+va_list aq;
+va_copy(aq, ap);
+...
+va_end(aq)
+```
+
+**案例**：实现printf函数，
+
+```c
+#include <stdio.h>
+#include <stdarg.h>
+void printff(const char* fmt, ...){
+    va_list ap;
+    va_start(ap, fmt);
+    int i = 0;
+    while (fmt[i] != '\0'){
+        if (fmt[i] != '%'){
+            printf("%c", fmt[i]);
+            i++;
+            continue;
+        }
+        i++; // 跳过％
+        switch (fmt[i]){
+        case 'c': // 得到一个字符{
+            char cc = (char)va_arg(ap, int);
+            printf("%c", cc);
+            break;
+        }
+        case 'd': // 得到一个整数{
+            int dd = va_arg(ap, int);
+            printf("%d", dd);
+            break;
+        }
+        case 's': // 得到一个字符串{
+            char* ss = va_arg(ap, char*);
+            printf("%s", ss);
+            break;
+        }
+        }
+        i++; // 处理完后移动到下一个字符
+    }
+    va_end(ap);
+}
+int main(){
+    printff("Hello %s %d %c\n", "World", 2023, '!');
+    return 0;
+}
+
+```
+
+#### 单周期处理设计
+
+![img](E:\note\cpu.jpg)
+
+
+
+#### verilator使用
+
+##### verilator基本命令
+
++ `verilator --cc alu.sv`将verilog文件编译为c++文件
+
+```bash
+Valu.h- 这是包含转换后的“ALU”类定义的主要设计标头 - 这是我们将在 C++ 测试平台中作为 DUT “实例化”的内容。
+
+Valu___024unit.h- 这是“ALU”类的内部标头，它包含我们的类型定义。operation_t
+```
+
++  `verilator -Wall --trace -cc alu.sv --exe tb_alu.cpp`重新生成文件以包含 C++ 测试平台
+
+```
+-Wall- 打开所有 C++ 警告。不是必需的，但在您刚开始时很有用
+--trace- 启用波形跟踪
+```
+
++ `make -C obj_dir -f Valu.mk Valu`构建可执行文件
+
+```bash
+-C obj_dir 告诉在目录中工作
+```
+
++ `./obj_dir/Valu`运行可执行文件
++   `gtkwave waveform.vcd`查看波形
+
+##### verilator仿真文件分析
+
+```c++
+#include <stdlib.h>
+#include <iostream>
+#include <verilated.h>//
+#include <verilated_vcd_c.h>//波形文件
+#include "Valu.h"//这里面主要定义V(模块名)的一个类，里面有rtl文件中信号类型
+#include "Valu___024unit.h"//这里rtl代码中的类型定义
+
+#define MAX_SIM_TIME 20
+vluint64_t sim_time = 0;
+
+int main(int argc, char** argv, char** env) {
+    Valu *dut = new Valu; //创建一个名为 dut 的 Valu 类对象，即 Verilog 模块的实例
+
+    Verilated::traceEverOn(true);//设置 Verilator 跟踪功能为始终开启。这个设置会影响后续创建的 VerilatedVcdC 对象
+    VerilatedVcdC *m_trace = new VerilatedVcdC;//创建一个名为 m_trace 的 VerilatedVcdC 类对象，用于生成 VCD 波形文件。
+    dut->trace(m_trace, 5);//将 Verilog 模块实例 dut 关联到 m_trace 对象，使得 Verilator 可以将模拟过程中的信号值写入到 VCD 文件中。数字 5 是设置的时间单位，表示每个时间单位的步长。
+    m_trace->open("waveform.vcd");//打开一个名为 "waveform.vcd" 的 VCD 波形文件，用于记录模拟过程中的信号值变化
+
+    while (sim_time < MAX_SIM_TIME) {
+        dut->clk ^= 1;
+        dut->eval();//调用 Verilator 自动生成的 eval() 方法，用于评估 Verilog 模块在当前时钟周期下的行为
+        m_trace->dump(sim_time);//将当前模拟时间的信号值写入到 VCD 波形文件中，以便后续波形分析和调试。
+        sim_time++;
+    }
+
+    m_trace->close();
+    delete dut;
+    exit(EXIT_SUCCESS);
+}
+
+```
 
